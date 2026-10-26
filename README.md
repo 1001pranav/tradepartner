@@ -11,7 +11,7 @@ No F&O. Swing and positional strategies first; intraday last.
 
 ## Status
 
-Planning done; nothing built yet. The full specification is in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md).
+Planning done; nothing built yet. The full specification is in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md), and rules for coding agents are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Build order
 
