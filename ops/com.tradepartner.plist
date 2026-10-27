@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Install: copy to ~/Library/LaunchAgents/, replace REPO_PATH and USERNAME, then
+       launchctl load ~/Library/LaunchAgents/com.tradepartner.plist
+     `caffeinate -i` keeps the Mac awake while the scheduler runs. Logs go to ~/.tradepartner/logs. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.tradepartner</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string><string>-i</string>
+    <string>/opt/homebrew/bin/uv</string><string>run</string>
+    <string>--project</string><string>REPO_PATH</string>
+    <string>tradepartner</string><string>run</string>
+  </array>
+  <key>WorkingDirectory</key><string>REPO_PATH</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>OLLAMA_KEEP_ALIVE</key><string>5m</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StandardOutPath</key><string>/Users/USERNAME/.tradepartner/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>/Users/USERNAME/.tradepartner/logs/launchd.err.log</string>
+</dict>
+</plist>

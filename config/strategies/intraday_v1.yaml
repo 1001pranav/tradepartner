@@ -1,0 +1,15 @@
+name: intraday_v1
+enabled: false          # M9: paper-trade only. The risk engine blocks live MIS entries until the
+                        # intraday gate passes (approved model + 3 months and 40 paper trades).
+algo: lightgbm
+objective: binary       # y = next-30-minute return beats costs, 5-minute bars
+horizon_bars: 6
+top_k: 3
+min_prob: 0.55
+min_vol_ratio: 1.5      # opening-range breakout needs volume 1.5x the recent average
+entry_buffer_pct: 0.1
+stop_atr_mult: 1.5
+max_stop_pct: 1.5
+reward_risk: 1.6
+max_bar_age_min: 6      # never trade on a stale bar
+product: MIS

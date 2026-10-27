@@ -1,0 +1,16 @@
+{
+  "name": "delivery_buy",
+  "fills": [
+    {
+      "id": 1,
+      "order_ref": "o1",
+      "symbol": "INFY",
+      "side": "BUY",
+      "product": "CNC",
+      "qty": 100,
+      "price": 1500.5,
+      "trade_date": "2026-03-02"
+    }
+  ],
+  "total": 177.94
+}

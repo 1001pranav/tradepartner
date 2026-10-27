@@ -1,0 +1,26 @@
+{
+  "name": "intraday_round_trip",
+  "fills": [
+    {
+      "id": 1,
+      "order_ref": "b1",
+      "symbol": "TCS",
+      "side": "BUY",
+      "product": "MIS",
+      "qty": 500,
+      "price": 250.1,
+      "trade_date": "2026-03-06"
+    },
+    {
+      "id": 2,
+      "order_ref": "s1",
+      "symbol": "TCS",
+      "side": "SELL",
+      "product": "MIS",
+      "qty": 500,
+      "price": 251.4,
+      "trade_date": "2026-03-06"
+    }
+  ],
+  "total": 91.03
+}

@@ -1,0 +1,26 @@
+{
+  "name": "delivery_sell_two_fills",
+  "fills": [
+    {
+      "id": 1,
+      "order_ref": "o2",
+      "symbol": "INFY",
+      "side": "SELL",
+      "product": "CNC",
+      "qty": 60,
+      "price": 1520.25,
+      "trade_date": "2026-03-05"
+    },
+    {
+      "id": 2,
+      "order_ref": "o2",
+      "symbol": "INFY",
+      "side": "SELL",
+      "product": "CNC",
+      "qty": 40,
+      "price": 1520.25,
+      "trade_date": "2026-03-05"
+    }
+  ],
+  "total": 172.85
+}

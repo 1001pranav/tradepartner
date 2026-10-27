@@ -1,0 +1,4 @@
+# NSE ASM/GSM surveillance list: one symbol per line. Maintain from the exchange circulars.
+# [VERIFY] There is no free machine-readable feed wired in; symbols listed here are BLOCKED by the
+# risk engine (data_rules.block_asm_gsm). An empty list means nothing is blocked.
+symbol

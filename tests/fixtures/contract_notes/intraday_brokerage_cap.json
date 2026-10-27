@@ -1,0 +1,16 @@
+{
+  "name": "intraday_brokerage_cap",
+  "fills": [
+    {
+      "id": 1,
+      "order_ref": "b9",
+      "symbol": "RELIANCE",
+      "side": "BUY",
+      "product": "MIS",
+      "qty": 20000,
+      "price": 3000.0,
+      "trade_date": "2026-03-06"
+    }
+  ],
+  "total": 3997.16
+}

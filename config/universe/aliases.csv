@@ -1,0 +1,51 @@
+# Common short names -> symbol. An alias that maps to several symbols is AMBIGUOUS and is
+# resolved by the LLM (it must choose one of the candidates, or none). [VERIFY]
+alias,symbol
+infosys,INFY
+tcs,TCS
+wipro,WIPRO
+reliance,RELIANCE
+reliance industries,RELIANCE
+hdfc bank,HDFCBANK
+icici bank,ICICIBANK
+sbi,SBIN
+state bank of india,SBIN
+kotak mahindra bank,KOTAKBANK
+axis bank,AXISBANK
+bajaj finance,BAJFINANCE
+bharti airtel,BHARTIARTL
+airtel,BHARTIARTL
+larsen & toubro,LT
+l&t,LT
+maruti suzuki,MARUTI
+mahindra & mahindra,M&M
+sun pharma,SUNPHARMA
+dr reddy's,DRREDDY
+hul,HINDUNILVR
+hindustan unilever,HINDUNILVR
+asian paints,ASIANPAINT
+adani enterprises,ADANIENT
+adani ports,ADANIPORTS
+tata motors,TATAMOTORS
+tata steel,TATASTEEL
+tata power,TATAPOWER
+tata consumer,TATACONSUM
+tata,TATAMOTORS
+tata,TATASTEEL
+tata,TCS
+tata,TATAPOWER
+tata,TATACONSUM
+tata,TITAN
+adani,ADANIENT
+adani,ADANIPORTS
+adani,ADANIPOWER
+adani,ADANIGREEN
+adani,ADANIENSOL
+bajaj,BAJAJ-AUTO
+bajaj,BAJFINANCE
+bajaj,BAJAJFINSV
+bajaj,BAJAJHLDNG
+hdfc,HDFCBANK
+hdfc,HDFCLIFE
+zomato,ETERNAL
+eternal,ETERNAL

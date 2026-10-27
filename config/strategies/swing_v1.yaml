@@ -1,0 +1,15 @@
+name: swing_v1
+enabled: false          # turned on by the strategy engine only after a model is approved
+algo: lightgbm
+objective: binary       # y = 1 if the 5-day forward return beats Nifty by round-trip cost + 0.5%
+horizon_days: 5
+top_k: 5
+min_prob: 0.45          # only trade when the model is clearly above the ~37% base rate (fixed, not tuned on test data)
+n_trials: 25            # optuna, inside training folds only (hard cap 50)
+test_months: 3
+min_train_days: 504
+product: CNC
+entry_buffer_pct: 0.5   # limit = signal close * (1 + buffer)
+stop_atr_mult: 2.0
+reward_risk: 2.0
+max_stop_pct: 7.0

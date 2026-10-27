@@ -1,0 +1,204 @@
+[project]
+name = "tradepartner"
+version = "0.1.0"
+description = "Local AI-assisted trading partner for NSE cash equities via Zerodha Kite Connect"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "typer>=0.12",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "pyyaml>=6.0",
+  "sqlalchemy>=2.0",
+  "alembic>=1.13",
+  "structlog>=24.1",
+  "keyring>=25.0",
+  "pandas>=3.1.0",
+  "numpy>=2.5.4",
+  "pyarrow>=26.0.0",
+  "duckdb>=2.0.0",
+  "kiteconnect>=5.2.2",
+  "httpx>=0.28.1",
+  "openpyxl>=3.1.5",
+  "lightgbm>=4.7.0",
+  "scikit-learn>=1.9.1",
+  "optuna>=5.0.0",
+  "streamlit>=1.66.1",
+  "apscheduler>=3.11.3",
+  "defusedxml>=0.7.1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.2",
+  "pytest-cov>=5.0",
+  "hypothesis>=6.100",
+  "freezegun>=1.5",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "types-PyYAML",
+  "import-linter>=2.0",
+  "pre-commit>=3.7",
+  "pandas-stubs>=3.0.5.260914",
+  "types-openpyxl>=3.1.5.20261017",
+  "types-defusedxml>=0.7.0.20260504",
+]
+
+[project.scripts]
+tradepartner = "tradepartner.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tradepartner"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = ["src/tradepartner/db/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "N", "RUF"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501", "S", "N802", "E741"]
+"src/tradepartner/ui/**" = ["E501"]  # dense layout code
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+warn_unused_ignores = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+  "tradepartner.risk.*",
+  "tradepartner.modes.*",
+  "tradepartner.costs.*",
+  "tradepartner.ledger.*",
+  "tradepartner.execution.*",
+]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["alembic.*", "keyring.*", "kiteconnect.*", "duckdb.*", "lightgbm.*", "optuna.*", "sklearn.*", "streamlit.*", "apscheduler.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+branch = true
+source = ["tradepartner"]
+omit = [
+  "src/tradepartner/db/migrations/*",
+  "src/tradepartner/ui/app.py",
+  "src/tradepartner/ui/pages/*",  # Streamlit scripts: smoke-tested with AppTest, not line-measured
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.importlinter]
+root_package = "tradepartner"
+
+[[tool.importlinter.contracts]]
+name = "AI, model and strategy code cannot reach the order router"
+type = "forbidden"
+source_modules = [
+  "tradepartner.strategies",
+  "tradepartner.models",
+  "tradepartner.llm",
+  "tradepartner.signals",
+  "tradepartner.features",
+  "tradepartner.news",
+]
+forbidden_modules = ["tradepartner.execution.router", "tradepartner.modes.controller"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Only cli, ui and risk.engine may import the mode controller"
+type = "forbidden"
+source_modules = [
+  "tradepartner.data",
+  "tradepartner.ledger",
+  "tradepartner.reports",
+  "tradepartner.execution",
+  "tradepartner.backtest",
+  "tradepartner.costs",
+  "tradepartner.notify",
+  "tradepartner.db",
+  "tradepartner.risk.rules",
+  "tradepartner.risk.limits",
+  "tradepartner.risk.context",
+  "tradepartner.risk.kill",
+  "tradepartner.risk.sizing",
+  "tradepartner.risk.types",
+  "tradepartner.risk.approved",
+]
+forbidden_modules = ["tradepartner.modes.controller"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Only the risk engine may reach the ApprovedOrder mint token"
+type = "forbidden"
+source_modules = [
+  "tradepartner.cli",
+  "tradepartner.ui",
+  "tradepartner.data",
+  "tradepartner.ledger",
+  "tradepartner.reports",
+  "tradepartner.execution",
+  "tradepartner.backtest",
+  "tradepartner.costs",
+  "tradepartner.modes",
+  "tradepartner.strategies",
+  "tradepartner.models",
+  "tradepartner.llm",
+  "tradepartner.signals",
+  "tradepartner.features",
+  "tradepartner.news",
+  "tradepartner.risk.rules",
+  "tradepartner.risk.limits",
+  "tradepartner.risk.context",
+  "tradepartner.risk.kill",
+  "tradepartner.risk.sizing",
+  "tradepartner.risk.types",
+]
+forbidden_modules = ["tradepartner.risk._mint"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Only cli and ui may approve or roll back models"
+type = "forbidden"
+source_modules = [
+  "tradepartner.strategies",
+  "tradepartner.llm",
+  "tradepartner.signals",
+  "tradepartner.features",
+  "tradepartner.news",
+  "tradepartner.backtest",
+  "tradepartner.data",
+  "tradepartner.ledger",
+  "tradepartner.execution",
+  "tradepartner.reports",
+  "tradepartner.risk",
+  "tradepartner.modes",
+  "tradepartner.runtime",
+  "tradepartner.models.pipeline",
+  "tradepartner.models.registry",
+  "tradepartner.models.train",
+  "tradepartner.models.evaluate",
+  "tradepartner.models.drift",
+  "tradepartner.models.cv",
+]
+forbidden_modules = ["tradepartner.models.approval"]
+allow_indirect_imports = true

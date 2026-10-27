@@ -1,0 +1,23 @@
+# Zerodha charge schedule (spec section 8). [VERIFY] against the charges page and contract notes.
+equity_delivery:
+  brokerage: 0
+  stt_buy_pct: 0.1
+  stt_sell_pct: 0.1
+  exchange_txn_pct_nse: 0.00297
+  sebi_per_crore_inr: 10
+  stamp_buy_pct: 0.015
+  gst_pct: 18
+  dp_charge_per_scrip_sell_day_inr: 15.34   # [VERIFY]
+equity_intraday:
+  brokerage_pct: 0.03
+  brokerage_cap_inr: 20
+  stt_sell_pct: 0.025
+  exchange_txn_pct_nse: 0.00297
+  sebi_per_crore_inr: 10
+  stamp_buy_pct: 0.003
+  gst_pct: 18
+slippage:
+  default_bps: 10
+  intraday_bps: 5
+rounding:
+  stt_round_to_rupee: true     # contract notes show STT in whole rupees. [VERIFY]

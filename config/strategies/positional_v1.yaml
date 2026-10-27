@@ -1,0 +1,15 @@
+name: positional_v1
+enabled: false
+algo: lightgbm
+objective: regression   # y = cross-sectional rank of the 60-day forward excess return
+horizon_days: 60
+top_k: 10
+n_trials: 25
+test_months: 3
+min_train_days: 504
+product: CNC
+entry_buffer_pct: 0.5
+stop_atr_mult: 3.0
+reward_risk: 2.0
+max_stop_pct: 8.0
+rebalance: monthly

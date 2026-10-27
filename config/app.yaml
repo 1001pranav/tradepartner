@@ -1,0 +1,21 @@
+# Paths, schedule, universe, LLM (spec sections 4, 10, 12).
+timezone: Asia/Kolkata
+universe: nifty100
+llm:
+  model: "qwen2.5:7b-instruct"
+  knowledge_cutoff: "2024-12-31"   # [VERIFY]
+  cutoff_buffer_days: 90
+  num_ctx: 4096
+  keep_alive: "5m"
+# [VERIFY] feed URLs change; edit freely. Failing feeds are logged and skipped.
+rss_feeds:
+  - https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms
+  - https://www.moneycontrol.com/rss/business.xml
+  - https://www.livemint.com/rss/markets
+broker: paper                    # paper | kite (kite is used only after M8 sign-off)
+manual_execution: kite_app       # kite_app | api_approve
+ui:
+  host: 127.0.0.1
+  port: 8501
+kite:
+  redirect_port: 5000     # register http://127.0.0.1:5000/ as the Kite app redirect URL

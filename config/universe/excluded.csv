@@ -1,0 +1,5 @@
+# Symbols left out of backtests and training for DATA reasons only (never because of returns).
+# Demergers change the price without a split factor we can derive, which fakes a crash.
+symbol,reason
+VEDL,demerger 2026-04-30 not adjusted (-33% step)
+SIEMENS,demerger of Siemens Energy 2025-04 not adjusted (-25% step)

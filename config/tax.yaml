@@ -1,0 +1,8 @@
+# Tax categories and rates (spec section 2.4). [VERIFY with a CA]
+swing_treatment: capital_gains   # capital_gains | business_income (Pranav's call, with a CA)
+stcg_pct: 20
+ltcg_pct: 12.5
+ltcg_exemption_inr: 125000       # per FY, across all LTCG
+long_term_months: 12
+capital_loss_carry_forward_years: 8
+speculative_loss_carry_forward_years: 4

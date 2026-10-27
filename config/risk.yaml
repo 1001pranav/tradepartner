@@ -1,0 +1,54 @@
+# ALL risk limits (spec section 7.2). Tightening is allowed; loosening needs Pranav's explicit approval.
+capital_base_inr: 2500          # REQUIRED: Pranav sets. System refuses to start if 0.
+allowed_segments: [NSE_EQ]
+allowed_products: [CNC, MIS]
+allow_intraday_short: false
+allow_market_orders: false   # except kill-switch exits
+market_protection_pct: 1.0
+
+per_trade:
+  max_risk_pct: 0.75
+  max_position_pct: 10
+  require_stop_loss: true
+  max_stop_distance_pct: 8
+  min_reward_risk: 1.5
+  limit_price_band_pct: 1.5
+  min_price_inr: 50
+  min_avg_daily_value_inr: 50000000
+  max_pct_of_adv: 0.5
+
+portfolio:
+  max_open_positions: 8
+  max_sector_exposure_pct: 30
+  max_gross_exposure_pct: 100
+  max_mis_exposure_pct: 30
+  no_averaging_down: true
+  reentry_cooldown_days_after_stop: 3
+
+loss_limits:
+  daily_loss_pct: 2.0
+  weekly_loss_pct: 4.0
+  max_drawdown_pct: 10.0
+  consecutive_losses_halt: 6
+
+rate_limits:
+  max_orders_per_second: 1
+  max_orders_per_day: 30
+  max_order_modifications_per_order: 5
+
+time_rules:
+  no_new_entries_before: "09:20"
+  no_new_entries_after: "15:00"
+  mis_square_off_at: "15:10"
+  skip_days: [result_day_of_symbol, ex_date_of_symbol]
+
+data_rules:
+  max_quote_staleness_sec: 10
+  max_signal_age_minutes: 120
+  block_if_circuit_hit: true
+  block_asm_gsm: true
+
+auto_only:
+  max_orders_per_day: 10
+  max_position_pct: 5
+  daily_loss_pct: 1.0
