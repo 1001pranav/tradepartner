@@ -26,6 +26,7 @@ from tradepartner.data.corporate_actions import Action, load_actions
 from tradepartner.data.live import Bar, BarBuilder, bars_to_frame
 from tradepartner.data.quotes import QuoteBook, poll
 from tradepartner.db.models import JobRun, Model, OrderProposal, ResultDate
+from tradepartner.execution import protective
 from tradepartner.execution.broker import Broker
 from tradepartner.execution.killswitch import Pending
 from tradepartner.execution.mis_protect import place_mis_stops
@@ -438,11 +439,45 @@ def job_expire_entries(ctx: JobContext) -> str:
     return f"cancelled {cancelled} entry orders, expired {expired} signals"
 
 
+EXIT_DISCOUNT_BPS = 50  # protective exits sell this far below LTP to cross the spread
+
+
+def _exit_limit_paise(ltp_paise: int, discount_bps: int = EXIT_DISCOUNT_BPS) -> int:
+    """Integer-paise limit price below LTP, on the 5-paise tick (rule 6: no float money)."""
+    return ltp_paise * (10_000 - discount_bps) // 10_000 // 5 * 5
+
+
+def _protective_exit(
+    ctx: JobContext,
+    rt: Runtime,
+    symbol: str,
+    product: str,
+    qty: int,
+    strategy: str,
+    reason: str,
+    ltp_paise: int,
+    discount_bps: int = EXIT_DISCOUNT_BPS,
+) -> bool:
+    """Sell a bot position through the router. Any working SELL for the symbol is cancelled
+    first, and the key carries a 5-minute bucket, so an unfilled exit is re-priced and retried
+    instead of being rejected as a duplicate."""
+    from tradepartner.risk.types import Proposal
+
+    for o in rt.broker.open_orders():
+        if o.symbol == symbol and o.side == "SELL" and o.product == product:
+            rt.broker.cancel_order(o.broker_order_id)
+    now = ctx.clock()
+    p = Proposal(
+        strategy, symbol, "SELL", product, "LIMIT", "EXIT", now,
+        f"prot-exit-{symbol}-{product}-{now:%Y%m%d%H}{now.minute // 5:02d}-{qty}",
+        limit_price_paise=_exit_limit_paise(ltp_paise, discount_bps),
+        exit_qty=qty, exit_reason=reason, protective=True,
+    )  # fmt: skip
+    return rt.router.submit(p, now).status == "placed"
+
+
 def job_square_off_mis(ctx: JobContext) -> str:
     """15:10: square off bot-created MIS positions before the broker's auto square-off."""
-    from tradepartner.risk.types import Proposal
-    from tradepartner.strategies.base import round_tick
-
     done, alerts = 0, []
     with ctx.session_factory() as s:
         rt = ctx.runtime(s)
@@ -457,21 +492,10 @@ def job_square_off_mis(ctx: JobContext) -> str:
             if q is None:
                 alerts.append(pos.symbol)
                 continue
-            p = Proposal(
-                pos.strategy or "mis_squareoff",
-                pos.symbol,
-                "SELL",
-                "MIS",
-                "LIMIT",
-                "EXIT",
-                ctx.clock(),
-                f"mis-sq-{pos.symbol}-{ctx.today()}",
-                limit_price_paise=round_tick(q.ltp_paise * 0.998),
-                exit_qty=pos.qty,
-                exit_reason="time_stop",
-                protective=True,
-            )
-            if rt.router.submit(p, ctx.clock()).status == "placed":
+            if _protective_exit(
+                ctx, rt, pos.symbol, "MIS", pos.qty, pos.strategy or "mis_squareoff",
+                "time_stop", q.ltp_paise, 20,
+            ):  # fmt: skip
                 done += 1
     if alerts:
         ctx.notifier("TradePartner", f"MIS positions need manual square-off: {', '.join(alerts)}")
@@ -642,8 +666,23 @@ def job_protective_check(ctx: JobContext) -> str:
         return "paper broker: GTT is simulated, nothing to verify"
     with ctx.session_factory() as s:
         rt, pm = _protective(ctx, s)
-        allow = {st: rt.controller.effective(st) == "AUTO" for st in ML_STRATEGIES}
-        report = pm.check(allow)
+        # Keeping a bot position's stop alive is protective, so it runs in every mode: a halt,
+        # a kill or a restart must not leave a partial fill unresized or a GTT missing.
+        report = pm.check(True)
+        for it in protective.intents(s):
+            q = ctx.quotes.get(it.symbol)
+            if report.get(it.symbol) in protective.EXIT_STATUSES and q is not None:
+                placed = _protective_exit(
+                    ctx,
+                    rt,
+                    it.symbol,
+                    "CNC",
+                    it.qty,
+                    it.strategy or "protective",
+                    "stop",
+                    q.ltp_paise,
+                )
+                report[it.symbol] += " -> exit placed" if placed else " -> EXIT NOT PLACED"
     bad = {k: v for k, v in report.items() if v not in ("OK", "CREATED", "RESIZED")}
     return (
         f"{len(report)} positions checked; problems: {bad}"

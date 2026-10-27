@@ -95,8 +95,14 @@ class Context:
     quotes: dict[str, Quote]
     instruments: dict[str, InstrumentMeta]
     positions: tuple[Position, ...] = ()
+    pending_entries: tuple[Position, ...] = ()  # unfilled remainder of open bot BUY orders
     limits: LimitState = field(default_factory=LimitState)
     live_broker: bool = False  # True when orders would go to the real broker
+
+
+def exposure_positions(ctx: Context) -> tuple[Position, ...]:
+    """Held positions plus resting entry orders: what portfolio limits must count."""
+    return ctx.positions + ctx.pending_entries
 
 
 @dataclass(frozen=True)

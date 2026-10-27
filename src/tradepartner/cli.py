@@ -152,11 +152,8 @@ def _job_context(settings: Settings) -> JobContext:
     return build_job_context(settings, lambda: _llm(settings))
 
 
-@app.command()
-def run() -> None:
-    """Start the scheduler (never in AUTO: every mode is clamped to MANUAL at start)."""
-    settings = _startup()
-    ctx = _job_context(settings)
+def _clamp_auto(ctx: JobContext) -> None:
+    """Hard rule 3 for every process that can place orders: AUTO is never resumed."""
     with ctx.session_factory() as session:
         clamped = ModeController(session).startup(utc_now())
     if clamped:
@@ -164,6 +161,14 @@ def run() -> None:
             f"Startup clamped AUTO -> MANUAL for {clamped}. Re-enable AUTO yourself.",
             fg=typer.colors.YELLOW,
         )
+
+
+@app.command()
+def run() -> None:
+    """Start the scheduler (never in AUTO: every mode is clamped to MANUAL at start)."""
+    settings = _startup()
+    ctx = _job_context(settings)
+    _clamp_auto(ctx)
     scheduler.validate()
     typer.echo("Scheduler starting (IST, trading days). Ctrl-C to stop.")
     scheduler.start(ctx)
@@ -189,7 +194,9 @@ def job_run(name: str) -> None:
         typer.secho(f"unknown job {name!r}; see `job list`", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2)
     settings = _startup()
-    status = jobs_mod.run_job(_job_context(settings), spec)
+    ctx = _job_context(settings)
+    _clamp_auto(ctx)  # a fresh process never inherits AUTO, even if the scheduler died in it
+    status = jobs_mod.run_job(ctx, spec)
     typer.echo(f"{name}: {status}")
     if status == "error":
         raise typer.Exit(code=1)

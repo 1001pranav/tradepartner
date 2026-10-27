@@ -13,7 +13,15 @@ from tradepartner.risk.sizing import (
     entry_price,
     pct,
 )
-from tradepartner.risk.types import Context, Position, Proposal, RuleResult, Severity, Sizing
+from tradepartner.risk.types import (
+    Context,
+    Position,
+    Proposal,
+    RuleResult,
+    Severity,
+    Sizing,
+    exposure_positions,
+)
 from tradepartner.settings import RiskConfig
 
 
@@ -288,7 +296,7 @@ def rule_adv_cap(p: Proposal, ctx: Context, cfg: RiskConfig, sz: Sizing) -> Rule
 
 
 def rule_open_positions(p: Proposal, ctx: Context, cfg: RiskConfig, sz: Sizing) -> RuleResult:
-    held = {pos.symbol for pos in ctx.positions if pos.qty > 0}
+    held = {pos.symbol for pos in exposure_positions(ctx) if pos.qty > 0}
     after = len(held | {p.symbol})
     if after > cfg.portfolio.max_open_positions:
         return fail("open_positions", f"would exceed {cfg.portfolio.max_open_positions} positions")
@@ -303,7 +311,7 @@ def _sector(symbol: str, ctx: Context) -> str:
 def rule_sector_exposure(p: Proposal, ctx: Context, cfg: RiskConfig, sz: Sizing) -> RuleResult:
     sector = _sector(p.symbol, ctx)
     current = sum(
-        _notional(pos, ctx) for pos in ctx.positions if _sector(pos.symbol, ctx) == sector
+        _notional(pos, ctx) for pos in exposure_positions(ctx) if _sector(pos.symbol, ctx) == sector
     )
     limit = cfg.capital_base_paise * pct(cfg.portfolio.max_sector_exposure_pct)
     if current + sz.notional_paise > limit:
@@ -312,7 +320,7 @@ def rule_sector_exposure(p: Proposal, ctx: Context, cfg: RiskConfig, sz: Sizing)
 
 
 def rule_gross_exposure(p: Proposal, ctx: Context, cfg: RiskConfig, sz: Sizing) -> RuleResult:
-    gross = sum(_notional(pos, ctx) for pos in ctx.positions)
+    gross = sum(_notional(pos, ctx) for pos in exposure_positions(ctx))
     if gross + sz.notional_paise > cfg.capital_base_paise * pct(
         cfg.portfolio.max_gross_exposure_pct
     ):
@@ -323,7 +331,7 @@ def rule_gross_exposure(p: Proposal, ctx: Context, cfg: RiskConfig, sz: Sizing) 
 def rule_mis_exposure(p: Proposal, ctx: Context, cfg: RiskConfig, sz: Sizing) -> RuleResult:
     if p.product != "MIS":
         return ok("mis_exposure")
-    mis = sum(_notional(pos, ctx) for pos in ctx.positions if pos.product == "MIS")
+    mis = sum(_notional(pos, ctx) for pos in exposure_positions(ctx) if pos.product == "MIS")
     if mis + sz.notional_paise > cfg.capital_base_paise * pct(cfg.portfolio.max_mis_exposure_pct):
         return fail("mis_exposure", "intraday exposure limit")
     return ok("mis_exposure")

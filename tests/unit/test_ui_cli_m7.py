@@ -227,6 +227,14 @@ def test_job_run_and_run_command_with_capital(
     boom = jobs.JobSpec("boom", lambda c: 1 / 0, "never")
     monkeypatch.setitem(jobs.BY_NAME, "boom", boom)
     assert runner.invoke(cli.app, ["job", "run", "boom"]).exit_code == 1
+    from tradepartner.modes.controller import ModeController
+    from tradepartner.modes.state import GLOBAL
+
+    with cli._session() as s:
+        ModeController(s).set_mode(GLOBAL, "AUTO", "user", "x", datetime.now(UTC))
+    assert runner.invoke(cli.app, ["job", "run", "daily_report"]).exit_code == 0
+    with cli._session() as s:  # an ad-hoc job process never inherits AUTO either
+        assert ModeController(s).current(GLOBAL).mode == "MANUAL"
     started: list[object] = []
     monkeypatch.setattr(scheduler, "start", lambda ctx: started.append(ctx))
     from tradepartner.modes.controller import ModeController

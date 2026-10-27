@@ -2,8 +2,8 @@
 
 For every open bot CNC position there must be a GTT OCO (stop-loss + target). This module
 verifies that on a schedule (every 5 minutes and on startup), recreates or resizes a missing GTT
-in AUTO, and only alerts in MANUAL. Statuses are written to the audit log so the Positions page
-can show a green tick or a red alert.
+where ``allow_place`` permits, and flags positions that must be sold. Statuses are written to
+the audit log so the Positions page can show a green tick or a red alert.
 """
 
 from collections import defaultdict
@@ -19,6 +19,9 @@ from tradepartner.db.models import Fill, Lot, Order, OrderProposal
 from tradepartner.execution.broker import Broker, GttInfo
 
 ACTIVE = "active"
+TRIGGERED = "triggered"
+# Statuses that mean the position must be sold now, not fixed with a GTT.
+EXIT_STATUSES = ("BREACHED", "TRIGGERED")
 
 
 @dataclass(frozen=True)
@@ -72,6 +75,9 @@ class ProtectiveManager:
     def _active(self) -> dict[str, GttInfo]:
         return {g.symbol: g for g in self.broker.list_gtts() if g.status == ACTIVE}
 
+    def _triggered(self) -> set[str]:
+        return {g.symbol for g in self.broker.list_gtts() if g.status == TRIGGERED}
+
     def _fix(self, it: Intent, existing: GttInfo | None) -> str:
         """Create or resize one GTT. Returns the resulting status."""
         last = self.last_price(it.symbol)
@@ -90,6 +96,7 @@ class ProtectiveManager:
     def check(self, allow_place: dict[str, bool] | bool = False) -> dict[str, str]:
         """Verify every bot position. ``allow_place`` is per strategy (AUTO) or a global flag."""
         active = self._active()
+        triggered = self._triggered()
         report: dict[str, str] = {}
         wanted = intents(self.session)
         for it in wanted:
@@ -109,7 +116,14 @@ class ProtectiveManager:
                 report[it.symbol] = "OK"
                 continue
             problem = "MISSING" if g is None else "MISMATCH"
-            if allowed:
+            if g is None and it.symbol in triggered:
+                # The GTT fired but the position is still held: its limit leg did not fill
+                # (e.g. a gap below the stop). Only a protective exit helps now.
+                report[it.symbol] = "TRIGGERED"
+                self.notify(
+                    "TradePartner PROTECTION", f"{it.symbol}: GTT fired, still held: exiting"
+                )
+            elif allowed:
                 status = self._fix(it, g)
                 report[it.symbol] = status
                 if status not in ("CREATED", "RESIZED"):

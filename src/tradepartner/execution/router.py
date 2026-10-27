@@ -7,7 +7,7 @@ Strategy, model, LLM and signal code must never import this module (import-linte
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from sqlalchemy import select
@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from tradepartner.db import audit
 from tradepartner.db.models import Order, OrderProposal, Signal
 from tradepartner.execution.broker import Broker, BrokerOrder
+from tradepartner.ledger.sync import origin_for
 from tradepartner.modes.state import ModeReader
 from tradepartner.risk.approved import ApprovedOrder
 from tradepartner.risk.engine import RiskEngine, record_blocks
@@ -55,10 +56,38 @@ class Router:
         self.manual_execution = manual_execution
 
     # The one and only call site of Broker.place_order.
-    def _place(self, order: ApprovedOrder) -> BrokerOrder:
+    def _place(self, order: ApprovedOrder, now: datetime | None = None) -> BrokerOrder:
         if not isinstance(order, ApprovedOrder):
             raise TypeError("router only places ApprovedOrder")
-        return self.broker.place_order(order)
+        placed = self.broker.place_order(order)
+        self._record_order(order, placed, now or datetime.now(UTC))
+        return placed
+
+    def _record_order(self, order: ApprovedOrder, placed: BrokerOrder, now: datetime) -> None:
+        """Write the Order row at placement so limits see it before the 30 s broker sync."""
+        if self.session.scalar(
+            select(Order.id).where(Order.broker_order_id == placed.broker_order_id)
+        ):
+            return
+        origin, proposal_id = origin_for(self.session, order.tag)
+        self.session.add(
+            Order(
+                proposal_id=proposal_id or order.proposal_id,
+                broker_order_id=placed.broker_order_id,
+                origin=origin,
+                symbol=placed.symbol,
+                side=placed.side,
+                product=placed.product,
+                order_type=placed.order_type,
+                qty=placed.qty,
+                price_paise=placed.price_paise,
+                trigger_paise=placed.trigger_paise,
+                tag=placed.tag,
+                placed_at=now,
+                status=placed.status,
+            )
+        )
+        self.session.commit()
 
     def place_emergency(self, order: ApprovedOrder) -> BrokerOrder:
         """For the kill switch: the order came from ``approve_emergency_exit``."""
@@ -130,7 +159,7 @@ class Router:
         protective_exit = p.kind == "EXIT" and p.protective
         mode = self.modes.effective(p.strategy)
         if protective_exit or mode == "AUTO":
-            placed = self._place(decision.order)
+            placed = self._place(decision.order, now)
             return SubmitResult("placed", row.id, decision, placed, halted)
         if mode == "MANUAL":
             return SubmitResult("shown", row.id, decision, None, halted)
@@ -181,4 +210,4 @@ class Router:
         if not decision.approved or decision.order is None:
             record_blocks(self.session, decision.failures, f"strategy:{p.strategy}", now)
             return SubmitResult("rejected", row.id, decision, None, halted)
-        return SubmitResult("placed", row.id, decision, self._place(decision.order), halted)
+        return SubmitResult("placed", row.id, decision, self._place(decision.order, now), halted)

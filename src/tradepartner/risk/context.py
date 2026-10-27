@@ -3,11 +3,11 @@
 from collections import defaultdict
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tradepartner.calendar import TradingCalendar
-from tradepartner.db.models import Fill, Lot
+from tradepartner.db.models import Fill, Lot, Order
 from tradepartner.risk.limits import BOT_ORIGINS, compute_limit_state, fill_strategies
 from tradepartner.risk.types import Context, InstrumentMeta, Mode, Position, Quote
 from tradepartner.settings import RiskConfig
@@ -33,6 +33,31 @@ def positions_from_lots(session: Session) -> tuple[Position, ...]:
     )
 
 
+TERMINAL_ORDER_STATUSES = ("COMPLETE", "CANCELLED", "REJECTED")
+
+
+def pending_entries(session: Session) -> tuple[Position, ...]:
+    """The unfilled remainder of open bot BUY orders, so resting entries count against limits."""
+    filled = {
+        oid: int(total or 0)
+        for oid, total in session.execute(
+            select(Fill.order_id, func.sum(Fill.qty)).group_by(Fill.order_id)
+        )
+    }
+    out: list[Position] = []
+    for o in session.scalars(
+        select(Order).where(
+            Order.side == "BUY",
+            Order.origin.in_(BOT_ORIGINS),
+            Order.status.not_in(TERMINAL_ORDER_STATUSES),
+        )
+    ):
+        remaining = o.qty - filled.get(o.id, 0)
+        if remaining > 0:
+            out.append(Position(o.symbol, remaining, o.price_paise or 0, o.product, None, True))
+    return tuple(out)
+
+
 def build_context(
     session: Session,
     cfg: RiskConfig,
@@ -51,6 +76,7 @@ def build_context(
         quotes=quotes,
         instruments=instruments,
         positions=positions_from_lots(session),
+        pending_entries=pending_entries(session),
         limits=compute_limit_state(session, cfg, quotes, now, kill_active),
         live_broker=live_broker,
     )

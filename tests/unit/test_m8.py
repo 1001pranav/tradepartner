@@ -353,7 +353,7 @@ def test_live_test_places_exactly_one_share_after_typed_confirmation(live_world)
             select(OrderProposal).where(OrderProposal.strategy == "live_test")
         ).all()
         row = rows[-1]  # the declined run left an unplaced proposal behind
-        assert len(rows) == 2 and home.scalar(select(func.count()).select_from(Order)) == 0
+        assert len(rows) == 2 and home.scalar(select(func.count()).select_from(Order)) == 1
     assert (
         env.ctx is not None
         and row.max_qty == 1
